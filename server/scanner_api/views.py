@@ -8,24 +8,50 @@ from django.utils import timezone
 from django.views.decorators.csrf import csrf_exempt
 from .models import Agent, Task, TaskItem
 from .services import is_compliant
+from .security import (
+    verify_request,
+    decrypt_payload,
+    encrypt_payload
+)
+import binascii
 import json
 
 def agent_status(request):
+    # =========================================================
+    # 1. Extract headers
+    # =========================================================
     secret = request.headers.get("X-AGENT-SECRET")
+    timestamp = request.headers.get("X-AGENT-TIMESTAMP")
+    signature = request.headers.get("X-AGENT-SIGNATURE")
 
     if not secret:
         return JsonResponse({"error": "missing secret"}, status=401)
 
+    # =========================================================
+    # 2. Validate agent identity
+    # =========================================================
     try:
         agent = Agent.objects.get(secret_key=secret, is_active=True)
     except Agent.DoesNotExist:
         return JsonResponse({"error": "invalid agent"}, status=403)
 
-    # update heartbeat
+    # =========================================================
+    # 3. Verify request integrity (HMAC + replay protection)
+    #    For this endpoint body is empty -> {}
+    # =========================================================
+    if not verify_request(secret, timestamp, {}, signature):
+        return JsonResponse({"error": "invalid signature"}, status=403)
+
+    # =========================================================
+    # 4. Update heartbeat
+    # =========================================================
     agent.last_contact_at = timezone.now()
     agent.last_seen_ip = request.META.get("REMOTE_ADDR")
     agent.save(update_fields=["last_contact_at", "last_seen_ip"])
 
+    # =========================================================
+    # 5. Response (keep simple for now)
+    # =========================================================
     return JsonResponse({
         "status": "ok",
         "agent_id": str(agent.id),
@@ -33,22 +59,39 @@ def agent_status(request):
     })
 
 def tasks_pull(request):
+    # =========================================================
+    # 1. Extract headers
+    # =========================================================
     secret = request.headers.get("X-AGENT-SECRET")
+    timestamp = request.headers.get("X-AGENT-TIMESTAMP")
+    signature = request.headers.get("X-AGENT-SIGNATURE")
 
+    if not secret:
+        return JsonResponse({"error": "missing secret"}, status=401)
+
+    # =========================================================
+    # 2. Authenticate agent
+    # =========================================================
     try:
         agent = Agent.objects.get(secret_key=secret, is_active=True)
     except Agent.DoesNotExist:
         return JsonResponse({"error": "invalid agent"}, status=403)
 
-    tasks = Task.objects.filter(
-        agent=agent,
-        is_active=True
-    )
+    # =========================================================
+    # 3. Verify request integrity (HMAC + replay protection)
+    # =========================================================
+    if not verify_request(secret, timestamp, {}, signature):
+        return JsonResponse({"error": "invalid signature"}, status=403)
 
-    data = []
+    # =========================================================
+    # 4. Fetch tasks
+    # =========================================================
+    tasks = Task.objects.filter(agent=agent, is_active=True)
+
+    tasks_data = []
 
     for task in tasks:
-        data.append({
+        tasks_data.append({
             "task_id": task.id,
             "name": task.name,
             "targets": task.targets_raw,
@@ -56,23 +99,74 @@ def tasks_pull(request):
             "schedule": task.schedule,
         })
 
-    return JsonResponse({"tasks": data})
+    # =========================================================
+    # 5. FIXED ENCRYPTION KEY (32 bytes AES-256)
+    # =========================================================
+    try:
+        encryption_key = binascii.unhexlify(agent.secret_key)
+    except Exception:
+        return JsonResponse({"error": "invalid encryption key format"}, status=500)
 
+    # =========================================================
+    # 6. Encrypt payload
+    # =========================================================
+    encrypted_payload = encrypt_payload(
+        key=encryption_key,
+        data={"tasks": tasks_data}
+    )
+
+    # =========================================================
+    # 7. Return secure response
+    # =========================================================
+    return JsonResponse({
+        "status": "ok",
+        "payload": encrypted_payload
+    })
 
 @csrf_exempt
 def task_report(request):
     if request.method != "POST":
         return JsonResponse({"error": "POST only"}, status=405)
 
+    # =========================================================
+    # 1. Extract headers
+    # =========================================================
     secret = request.headers.get("X-AGENT-SECRET")
+    timestamp = request.headers.get("X-AGENT-TIMESTAMP")
+    signature = request.headers.get("X-AGENT-SIGNATURE")
+    encrypted_body = request.headers.get("X-AGENT-BODY")
 
+    if not secret:
+        return JsonResponse({"error": "missing secret"}, status=401)
+
+    # =========================================================
+    # 2. Validate agent
+    # =========================================================
     try:
         agent = Agent.objects.get(secret_key=secret, is_active=True)
     except Agent.DoesNotExist:
         return JsonResponse({"error": "invalid agent"}, status=403)
 
-    payload = json.loads(request.body)
+    # =========================================================
+    # 3. Decrypt payload (FIXED KEY DERIVATION)
+    # =========================================================
+    try:
+        payload = decrypt_payload(
+            key=binascii.unhexlify(agent.secret_key),
+            token=encrypted_body
+        )
+    except Exception:
+        return JsonResponse({"error": "decryption failed"}, status=403)
 
+    # =========================================================
+    # 4. Verify request integrity AFTER decrypt
+    # =========================================================
+    if not verify_request(secret, timestamp, payload, signature):
+        return JsonResponse({"error": "invalid signature"}, status=403)
+
+    # =========================================================
+    # 5. Extract data
+    # =========================================================
     task_id = payload.get("task_id")
     results = payload.get("results", [])
 
@@ -83,32 +177,29 @@ def task_report(request):
 
     updated = 0
 
+    # =========================================================
+    # 6. Process TaskItems (auto-create safe path)
+    # =========================================================
     for item in results:
         ip = item.get("ip")
         found_ports = item.get("found_ports", [])
 
-        # create TaskItem if it does not exist
         task_item, created = TaskItem.objects.get_or_create(
             task=task,
             ip_address=ip,
             defaults={
                 "agent": agent,
-                "allowed_ports": task.ports or [],  # safe default
+                "allowed_ports": [0],  # safe default
                 "status": "running",
                 "found_ports": [],
             }
         )
 
-        # always ensure traceability
         task_item.agent = agent
-
-        # update scan results
         task_item.found_ports = found_ports
 
-        # ensure allowed_ports is never invalid
-        allowed = task_item.allowed_ports or task.ports or []
+        allowed = task_item.allowed_ports or [0]
 
-        # evaluate compliance
         if is_compliant(found_ports, allowed):
             task_item.status = "done"
         else:
@@ -117,7 +208,9 @@ def task_report(request):
         task_item.save()
         updated += 1
 
-    # update task timestamp
+    # =========================================================
+    # 7. Update task metadata
+    # =========================================================
     task.last_result_received_at = timezone.now()
     task.save(update_fields=["last_result_received_at"])
 
@@ -131,23 +224,43 @@ def agent_inform(request):
     if request.method != "POST":
         return JsonResponse({"error": "POST only"}, status=405)
 
+    # =========================================================
+    # 1. Extract headers
+    # =========================================================
     secret = request.headers.get("X-AGENT-SECRET")
+    timestamp = request.headers.get("X-AGENT-TIMESTAMP")
+    signature = request.headers.get("X-AGENT-SIGNATURE")
 
+    if not secret:
+        return JsonResponse({"error": "missing secret"}, status=401)
+
+    # =========================================================
+    # 2. Authenticate agent
+    # =========================================================
     try:
         agent = Agent.objects.get(secret_key=secret, is_active=True)
     except Agent.DoesNotExist:
         return JsonResponse({"error": "invalid agent"}, status=403)
 
-    # get pending tasks for this agent
+    # =========================================================
+    # 3. Verify request integrity (empty body)
+    # =========================================================
+    if not verify_request(secret, timestamp, {}, signature):
+        return JsonResponse({"error": "invalid signature"}, status=403)
+
+    # =========================================================
+    # 4. State transition: pending → running
+    # =========================================================
     task_items = TaskItem.objects.filter(
         agent=agent,
         status="pending"
     )
 
-    updated = task_items.update(
-        status="running"
-    )
+    updated = task_items.update(status="running")
 
+    # =========================================================
+    # 5. Response
+    # =========================================================
     return JsonResponse({
         "status": "ok",
         "updated_items": updated
