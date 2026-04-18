@@ -22,6 +22,8 @@ from django.conf.urls.static import static
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('accounts/', include('allauth.urls')),
+    # scanner API
+    path("", include("scanner_api.urls")),
 ]
 
 if settings.DEBUG:
