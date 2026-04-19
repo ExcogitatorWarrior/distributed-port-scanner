@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Agents Dashboard</title>
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background: #fafafa;
+        }
+
+        h1 {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        table {
+            border-collapse: collapse;
+            width: 100%;
+            background: white;
+        }
+
+        th, td {
+            border: 1px solid #ddd;
+            padding: 10px;
+        }
+
+        th {
+            background-color: #f4f4f4;
+            text-align: left;
+        }
+
+        tr:hover {
+            background-color: #f1f1f1;
+            cursor: pointer;
+        }
+
+        .status {
+            font-weight: bold;
+        }
+
+        .active {
+            color: green;
+        }
+
+        .inactive {
+            color: red;
+        }
+
+        /* ---------------- CREATE BUTTON ---------------- */
+        .create-btn {
+            padding: 10px 16px;
+            font-size: 14px;
+            background: #1f6feb;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+        }
+
+        /* New Logout Button */
+        .logout-btn {
+            padding: 10px 16px;
+            font-size: 14px;
+            background: #ff4d4d; /* Red */
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            margin-left: 10px; /* Add a small gap between the buttons */
+        }
+
+        /* ---------------- MODAL ---------------- */
+        #modal {
+            display: none;
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: rgba(0,0,0,0.5);
+        }
+
+        #modalContent {
+            background: white;
+            width: 500px;
+            margin: 8% auto;
+            padding: 20px;
+            border-radius: 10px;
+        }
+
+        input {
+            width: 100%;
+            padding: 8px;
+            margin: 6px 0;
+            box-sizing: border-box;
+        }
+
+        .btn {
+            padding: 10px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        .btn-green { background: green; color: white; }
+        .btn-red { background: red; color: white; }
+
+        /* Copy Secret Key Button */
+        .copy-btn {
+            padding: 6px 12px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background-color 0.3s ease;
+        }
+
+        .copy-btn:hover {
+            background-color: #45a049;
+        }
+
+        .copy-btn:focus {
+            outline: none;
+            box-shadow: 0 0 3px 2px #00aaff;
+        }
+    </style>
+</head>
+
+<body>
+
+<h1>
+    Agents
+    <button class="create-btn" onclick="openModal()">➕ Create Agent</button>
+    <a href="/accounts/logout/"><button class="logout-btn">Logout</button></a>
+</h1>
+
+<table>
+    <thead>
+        <tr>
+            <th>ID</th>
+            <th>Name</th>
+            <th>Last Contact</th>
+            <th>Status</th>
+            <th>Secret Key</th>
+        </tr>
+    </thead>
+
+    <tbody id="agents-table"></tbody>
+</table>
+
+<!-- MODAL -->
+<div id="modal">
+    <div id="modalContent">
+
+        <h2>Create Agent</h2>
+
+        <input id="agentName" placeholder="Agent name">
+        <input id="contractInterval" placeholder="Contract interval (seconds, default 3600)">
+
+        <div style="margin-top: 10px;">
+            <button class="btn btn-green" onclick="submitAgent()">Create</button>
+            <button class="btn btn-red" onclick="closeModal()">Cancel</button>
+        </div>
+
+    </div>
+</div>
+
+<script>
+
+/* ---------------- LOAD AGENTS ---------------- */
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+
+async function loadAgents() {
+    const res = await fetch("/api/admin/agents/");
+    const data = await res.json();
+
+    const tbody = document.getElementById("agents-table");
+    tbody.innerHTML = "";
+
+    data.agents.forEach(agent => {
+        const row = document.createElement("tr");
+
+        // Only allow row to redirect when it's not the "Copy Secret Key" button
+        row.addEventListener('click', function (event) {
+            if (!event.target.closest('button')) {
+                window.location.href = `/admin-ui/agents/${agent.id}/`;
+            }
+        });
+
+        const lastContact = agent.last_contact_at
+            ? new Date(agent.last_contact_at).toLocaleString()
+            : "never";
+
+        row.innerHTML = `
+            <td>${agent.id}</td>
+            <td>${agent.name}</td>
+            <td>${lastContact}</td>
+            <td class="status ${agent.is_active ? 'active' : 'inactive'}">
+                ${agent.is_active ? "ACTIVE" : "INACTIVE"}
+            </td>
+            <td>
+                <button class="copy-btn" data-secret="${agent.secret_key}" onclick="copySecretKey(this)">
+                    Copy Secret Key
+                </button>
+            </td>
+        `;
+
+        tbody.appendChild(row);
+    });
+}
+
+loadAgents();
+
+/* ---------------- MODAL CONTROL ---------------- */
+function openModal() {
+    document.getElementById("modal").style.display = "block";
+}
+
+function closeModal() {
+    document.getElementById("modal").style.display = "none";
+}
+
+/* ---------------- CREATE AGENT ---------------- */
+async function submitAgent() {
+    const name = document.getElementById("agentName").value;
+    const contractIntervalRaw = document.getElementById("contractInterval").value;
+
+    const contract_interval_seconds =
+        contractIntervalRaw && contractIntervalRaw.trim() !== ""
+            ? parseInt(contractIntervalRaw)
+            : 3600;
+
+    const payload = {
+        name: name,
+        contract_interval_seconds: contract_interval_seconds
+    };
+
+    const csrfToken = getCookie("csrftoken");
+
+    const res = await fetch("/api/admin/create-agent/", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+            "X-CSRFToken": csrfToken
+        },
+        credentials: "same-origin",
+        body: JSON.stringify(payload)
+    });
+
+    const data = await res.json();
+
+    if (data.id) {
+        closeModal();
+        loadAgents();
+    } else {
+        alert("Error: " + JSON.stringify(data));
+    }
+}
+
+function copySecretKey(button) {
+    // Get the secret key from the button's data attribute
+    const secretKey = button.getAttribute('data-secret');
+
+    // Create a temporary input element to copy the secret key
+    const tempInput = document.createElement('input');
+    tempInput.value = secretKey;
+    document.body.appendChild(tempInput);
+
+    // Select and copy the value
+    tempInput.select();
+    document.execCommand('copy');
+
+    // Remove the temporary input element
+    document.body.removeChild(tempInput);
+
+    // Change the clicked button to red
+    button.style.backgroundColor = 'red';
+
+    // Reset all other buttons to green
+    const allButtons = document.querySelectorAll('.copy-btn');
+    allButtons.forEach(b => {
+        if (b !== button) {
+            b.style.backgroundColor = '#4CAF50'; // Reset to default blue
+        }
+    });
+}
+</script>
+
+</body>
+</html>

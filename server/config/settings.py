@@ -137,5 +137,5 @@ STATICFILES_DIRS = [
     BASE_DIR / "static",
 ]
 
-LOGIN_REDIRECT_URL = '/admin/'
+LOGIN_REDIRECT_URL = '/admin-ui/agents/'
 LOGOUT_REDIRECT_URL = '/accounts/login/'

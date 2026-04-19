@@ -1,5 +1,6 @@
 import uuid
 import secrets
+from .utils import is_valid_ip, validate_ports
 from django.shortcuts import render
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404
@@ -271,54 +272,97 @@ def create_agent(request):
     if request.method != "POST":
         return JsonResponse({"error": "POST only"}, status=405)
 
-    name = request.POST.get("name")
+    try:
+        data = json.loads(request.body.decode("utf-8"))
+    except Exception:
+        return JsonResponse({"error": "invalid JSON"}, status=400)
+
+    name = data.get("name")
+    contract_interval_seconds = data.get("contract_interval_seconds", 3600)
 
     if not name:
         return JsonResponse({"error": "missing name"}, status=400)
 
+    # basic safety clamp (VERY important)
+    try:
+        contract_interval_seconds = int(contract_interval_seconds)
+    except ValueError:
+        return JsonResponse({"error": "invalid interval"}, status=400)
+
+    if contract_interval_seconds < 10:
+        return JsonResponse({"error": "interval too small"}, status=400)
+
+    if contract_interval_seconds > 86400:
+        return JsonResponse({"error": "interval too large"}, status=400)
+
     agent = Agent.objects.create(
         name=name,
-        secret_key=secrets.token_hex(32)  # auto-generate secure key
+        secret_key=secrets.token_hex(32),
+        contract_interval_seconds=contract_interval_seconds
     )
 
     return JsonResponse({
         "id": str(agent.id),
         "name": agent.name,
-        "secret_key": agent.secret_key
+        "secret_key": agent.secret_key,
+        "contract_interval_seconds": agent.contract_interval_seconds
     })
+
 
 @staff_member_required
 def create_task(request):
     if request.method != "POST":
         return JsonResponse({"error": "POST only"}, status=405)
 
-    data = json.loads(request.body)
+    try:
+        # Parsing and validating the data
+        data = json.loads(request.body)  # Parse JSON body
 
-    name = data.get("name")
-    agent_id = data.get("agent_id")
+        name = data.get("name")
+        agent_id = data.get("agent_id")
+        targets = data.get("targets", [])
+        ports_raw = data.get("ports", [])
+        schedule = data.get("schedule", "daily")
 
-    if not name:
-        return JsonResponse({"error": "missing name"}, status=400)
+        if not name:
+            return JsonResponse({"error": "missing name"}, status=400)
 
-    agent = None
-    if agent_id:
-        try:
-            agent = Agent.objects.get(id=agent_id, is_active=True)
-        except Agent.DoesNotExist:
-            return JsonResponse({"error": "invalid agent"}, status=400)
+        # Check that targets is a list of valid IP addresses
+        if not all(is_valid_ip(ip) for ip in targets):
+            return JsonResponse({"error": "Invalid IP address format."}, status=400)
 
-    task = Task.objects.create(
-        name=name,
-        agent=agent,
-        targets_raw=data.get("targets", []),
-        ports=data.get("ports", []),
-        schedule=data.get("schedule", "once"),
-    )
+        # Validate ports, expecting a list of strings or numbers
+        if not isinstance(ports_raw, list):
+            return JsonResponse({"error": "Ports should be a list."}, status=400)
 
-    return JsonResponse({
-        "task_id": task.id,
-        "status": "created"
-    })
+        # Make sure the ports are in a correct format (strings or integers)
+        ports = validate_ports([str(port) for port in ports_raw])  # Convert all ports to strings for validation
+        if not ports:
+            return JsonResponse({"error": "Invalid port(s) format."}, status=400)
+
+        agent = None
+        if agent_id:
+            try:
+                agent = Agent.objects.get(id=agent_id, is_active=True)
+            except Agent.DoesNotExist:
+                return JsonResponse({"error": "invalid agent"}, status=400)
+
+        # Create the task
+        task = Task.objects.create(
+            name=name,
+            agent=agent,
+            targets_raw=targets,
+            ports=ports,
+            schedule=schedule  # Default to daily
+        )
+
+        return JsonResponse({
+            "task_id": task.id,
+            "status": "created"
+        })
+
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=500)
 
 @staff_member_required
 def list_agents(request):
@@ -375,3 +419,83 @@ def agent_detail(request, agent_id):
             "tasks": task_data
         }
     })
+
+@staff_member_required
+def admin_ui_agents(request):
+    return render(request, "admin_ui/agents_list.html")
+
+@staff_member_required
+def agent_detail_page(request, agent_id):
+    agent = get_object_or_404(Agent, id=agent_id)
+
+    tasks = agent.tasks.all()
+
+    task_data = []
+    for t in tasks:
+        task_data.append({
+            "id": t.id,
+            "name": t.name,
+            "targets": t.targets_raw,
+            "ports": t.ports,
+            "schedule": t.schedule,
+            "is_active": t.is_active,
+            "last_result_received_at": t.last_result_received_at,
+            "items": [
+                {
+                    "id": i.id,
+                    "ip": i.ip_address,
+                    "status": i.status,
+                    "found_ports": i.found_ports,
+                    "allowed_ports": i.allowed_ports,
+                }
+                for i in t.items.all()
+            ]
+        })
+
+    # Passing agent and task data to the frontend template
+    return render(request, 'admin_ui/agent_detail.html', {
+        'agent': agent,
+        'tasks': task_data
+    })
+
+
+@staff_member_required  # This ensures only staff members can access this view
+@csrf_exempt  # If you are not using CSRF tokens for this part, you can remove this if needed
+def update_allowed_ports(request, task_item_id):
+    if request.method != "POST":
+        return JsonResponse({"error": "POST only"}, status=405)
+
+    try:
+        # Parse the incoming JSON data
+        data = json.loads(request.body)
+
+        # Get the allowed_ports from the request data
+        allowed_ports = data.get("allowed_ports", None)
+
+        # Validate the allowed_ports field
+        if not isinstance(allowed_ports, list) or not all(isinstance(port, int) for port in allowed_ports):
+            return JsonResponse({"error": "Invalid allowed ports format. Expected a list of integers."}, status=400)
+
+        # Get the TaskItem object
+        task_item = get_object_or_404(TaskItem, id=task_item_id)
+
+        # Update the allowed ports for the TaskItem
+        task_item.allowed_ports = allowed_ports
+
+        # Recompute the task status based on found_ports and allowed_ports
+        found_ports = task_item.found_ports  # Assuming found_ports is already populated
+
+        # Check compliance and update status accordingly
+        if is_compliant(found_ports, allowed_ports):
+            task_item.status = "done"
+        else:
+            task_item.status = "alert"
+
+        task_item.save()
+
+        return JsonResponse({"status": "success", "message": "Allowed ports and status updated successfully"})
+
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=500)
+
+
