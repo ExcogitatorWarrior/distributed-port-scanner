@@ -1,5 +1,5 @@
 #agent/config.py
 BASE_URL = "http://127.0.0.1:8000"
-SECRET = "4bcb4e3d562f54ea899188a5897f01e51f9684002b7219664757c8499d28b8ee"
+SECRET = "13e3e5a7c895a56cbfa080b25775c822ccde7a83b9b79d8d779d85ffe85feaa1"
 CONTACT_INTERVAL_DEFAULT = 3  # Default interval in seconds (1 hour)
 TASK_DB_PATH = "tasks_db.json"  # Path to local task storage

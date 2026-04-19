@@ -5,8 +5,8 @@ import hmac
 import hashlib
 import json
 import binascii
-from agent.config import BASE_URL, SECRET
-from agent.security import decrypt_payload, encrypt_payload
+from config import BASE_URL, SECRET
+from security import decrypt_payload, encrypt_payload
 
 # AES Key derived from SECRET (same as in mock agent)
 AES_KEY = binascii.unhexlify(SECRET)
