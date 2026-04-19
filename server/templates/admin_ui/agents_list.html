@@ -1,306 +1,803 @@
-<!DOCTYPE html>
+<!doctype html>
 <html>
-<head>
-    <title>Agents Dashboard</title>
+	<head>
+		<title>Agents Dashboard - Distributed Port Scanner</title>
+		<meta charset="UTF-8" />
+		<meta
+			name="viewport"
+			content="width=device-width, initial-scale=1.0"
+		/>
+		<meta
+			name="csrf-token"
+			content="{{ csrf_token }}"
+		/>
 
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            margin: 20px;
-            background: #fafafa;
-        }
+		<style>
+			* {
+				margin: 0;
+				padding: 0;
+				box-sizing: border-box;
+			}
 
-        h1 {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
+			body {
+				font-family:
+					-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
+					'Helvetica Neue', Arial, sans-serif;
+				background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+				min-height: 100vh;
+				padding: 40px 20px;
+			}
 
-        table {
-            border-collapse: collapse;
-            width: 100%;
-            background: white;
-        }
+			.container {
+				max-width: 1400px;
+				margin: 0 auto;
+				background: white;
+				border-radius: 20px;
+				box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+				overflow: hidden;
+				animation: slideIn 0.5s ease-out;
+			}
 
-        th, td {
-            border: 1px solid #ddd;
-            padding: 10px;
-        }
+			@keyframes slideIn {
+				from {
+					opacity: 0;
+					transform: translateY(-30px);
+				}
+				to {
+					opacity: 1;
+					transform: translateY(0);
+				}
+			}
 
-        th {
-            background-color: #f4f4f4;
-            text-align: left;
-        }
+			/* Header Styles */
+			.header {
+				background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+				color: white;
+				padding: 30px 40px;
+			}
 
-        tr:hover {
-            background-color: #f1f1f1;
-            cursor: pointer;
-        }
+			.header h1 {
+				font-size: 28px;
+				margin-bottom: 10px;
+				display: flex;
+				justify-content: space-between;
+				align-items: center;
+				flex-wrap: wrap;
+				gap: 15px;
+			}
 
-        .status {
-            font-weight: bold;
-        }
+			.header p {
+				opacity: 0.9;
+				margin-top: 10px;
+				font-size: 14px;
+			}
 
-        .active {
-            color: green;
-        }
+			/* Button Styles */
+			.btn {
+				padding: 10px 20px;
+				border: none;
+				border-radius: 8px;
+				font-size: 14px;
+				font-weight: 500;
+				cursor: pointer;
+				transition: all 0.3s ease;
+				text-decoration: none;
+				display: inline-flex;
+				align-items: center;
+				gap: 8px;
+			}
 
-        .inactive {
-            color: red;
-        }
+			.btn-primary {
+				background: white;
+				color: #667eea;
+			}
 
-        /* ---------------- CREATE BUTTON ---------------- */
-        .create-btn {
-            padding: 10px 16px;
-            font-size: 14px;
-            background: #1f6feb;
-            color: white;
-            border: none;
-            border-radius: 6px;
-            cursor: pointer;
-        }
+			.btn-primary:hover {
+				transform: translateY(-2px);
+				box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+			}
 
-        /* New Logout Button */
-        .logout-btn {
-            padding: 10px 16px;
-            font-size: 14px;
-            background: #ff4d4d; /* Red */
-            color: white;
-            border: none;
-            border-radius: 6px;
-            cursor: pointer;
-            margin-left: 10px; /* Add a small gap between the buttons */
-        }
+			.btn-danger {
+				background: #ff4757;
+				color: white;
+			}
 
-        /* ---------------- MODAL ---------------- */
-        #modal {
-            display: none;
-            position: fixed;
-            top: 0; left: 0;
-            width: 100%; height: 100%;
-            background: rgba(0,0,0,0.5);
-        }
+			.btn-danger:hover {
+				background: #ff3838;
+				transform: translateY(-2px);
+			}
 
-        #modalContent {
-            background: white;
-            width: 500px;
-            margin: 8% auto;
-            padding: 20px;
-            border-radius: 10px;
-        }
+			.btn-success {
+				background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+				color: white;
+			}
 
-        input {
-            width: 100%;
-            padding: 8px;
-            margin: 6px 0;
-            box-sizing: border-box;
-        }
+			.btn-success:hover {
+				transform: translateY(-2px);
+				box-shadow: 0 5px 15px rgba(40, 167, 69, 0.4);
+			}
 
-        .btn {
-            padding: 10px;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-        }
+			.btn-secondary {
+				background: #e0e0e0;
+				color: #666;
+			}
 
-        .btn-green { background: green; color: white; }
-        .btn-red { background: red; color: white; }
+			.btn-secondary:hover {
+				background: #d0d0d0;
+			}
 
-        /* Copy Secret Key Button */
-        .copy-btn {
-            padding: 6px 12px;
-            background-color: #4CAF50;
-            color: white;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-            font-size: 14px;
-            transition: background-color 0.3s ease;
-        }
+			/* Content Styles */
+			.content {
+				padding: 40px;
+			}
 
-        .copy-btn:hover {
-            background-color: #45a049;
-        }
+			/* Table Styles */
+			.agents-table {
+				width: 100%;
+				border-collapse: collapse;
+				background: white;
+				border-radius: 12px;
+				overflow: hidden;
+				box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+			}
 
-        .copy-btn:focus {
-            outline: none;
-            box-shadow: 0 0 3px 2px #00aaff;
-        }
-    </style>
-</head>
+			.agents-table thead {
+				background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+				color: white;
+			}
 
-<body>
+			.agents-table th {
+				padding: 15px;
+				text-align: left;
+				font-weight: 600;
+				font-size: 14px;
+			}
 
-<h1>
-    Agents
-    <button class="create-btn" onclick="openModal()">➕ Create Agent</button>
-    <a href="/accounts/logout/"><button class="logout-btn">Logout</button></a>
-</h1>
+			.agents-table td {
+				padding: 15px;
+				border-bottom: 1px solid #e0e0e0;
+				font-size: 14px;
+				color: #555;
+			}
 
-<table>
-    <thead>
-        <tr>
-            <th>ID</th>
-            <th>Name</th>
-            <th>Last Contact</th>
-            <th>Status</th>
-            <th>Secret Key</th>
-        </tr>
-    </thead>
+			.agents-table tbody tr {
+				transition: all 0.3s ease;
+				cursor: pointer;
+			}
 
-    <tbody id="agents-table"></tbody>
-</table>
+			.agents-table tbody tr:hover {
+				background: #f8f9fa;
+				transform: translateX(5px);
+			}
 
-<!-- MODAL -->
-<div id="modal">
-    <div id="modalContent">
+			.agents-table tbody tr:last-child td {
+				border-bottom: none;
+			}
 
-        <h2>Create Agent</h2>
+			/* Status Badge */
+			.status-badge {
+				padding: 4px 12px;
+				border-radius: 20px;
+				font-size: 12px;
+				font-weight: 600;
+				text-align: center;
+				display: inline-block;
+			}
 
-        <input id="agentName" placeholder="Agent name">
-        <input id="contractInterval" placeholder="Contract interval (seconds, default 3600)">
+			.status-active {
+				background: #d4edda;
+				color: #155724;
+			}
 
-        <div style="margin-top: 10px;">
-            <button class="btn btn-green" onclick="submitAgent()">Create</button>
-            <button class="btn btn-red" onclick="closeModal()">Cancel</button>
-        </div>
+			.status-inactive {
+				background: #f8d7da;
+				color: #721c24;
+			}
 
-    </div>
-</div>
+			/* Copy Button */
+			.copy-btn {
+				padding: 6px 12px;
+				background: #667eea;
+				color: white;
+				border: none;
+				border-radius: 6px;
+				cursor: pointer;
+				font-size: 12px;
+				transition: all 0.3s ease;
+				display: inline-flex;
+				align-items: center;
+				gap: 5px;
+			}
 
-<script>
+			.copy-btn:hover {
+				background: #5a67d8;
+				transform: translateY(-1px);
+			}
 
-/* ---------------- LOAD AGENTS ---------------- */
-function getCookie(name) {
-    let cookieValue = null;
-    if (document.cookie && document.cookie !== '') {
-        const cookies = document.cookie.split(';');
-        for (let i = 0; i < cookies.length; i++) {
-            const cookie = cookies[i].trim();
-            if (cookie.substring(0, name.length + 1) === (name + '=')) {
-                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-                break;
-            }
-        }
-    }
-    return cookieValue;
-}
+			.copy-btn.copied {
+				background: #28a745;
+			}
 
-async function loadAgents() {
-    const res = await fetch("/api/admin/agents/");
-    const data = await res.json();
+			/* Modal Styles */
+			.modal {
+				display: none;
+				position: fixed;
+				top: 0;
+				left: 0;
+				width: 100%;
+				height: 100%;
+				background: rgba(0, 0, 0, 0.6);
+				justify-content: center;
+				align-items: center;
+				z-index: 1000;
+				animation: fadeIn 0.3s ease;
+			}
 
-    const tbody = document.getElementById("agents-table");
-    tbody.innerHTML = "";
+			.modal-content {
+				background: white;
+				border-radius: 20px;
+				width: 90%;
+				max-width: 500px;
+				animation: slideUp 0.3s ease;
+				overflow: hidden;
+			}
 
-    data.agents.forEach(agent => {
-        const row = document.createElement("tr");
+			@keyframes slideUp {
+				from {
+					transform: translateY(50px);
+					opacity: 0;
+				}
+				to {
+					transform: translateY(0);
+					opacity: 1;
+				}
+			}
 
-        // Only allow row to redirect when it's not the "Copy Secret Key" button
-        row.addEventListener('click', function (event) {
-            if (!event.target.closest('button')) {
-                window.location.href = `/admin-ui/agents/${agent.id}/`;
-            }
-        });
+			.modal-header {
+				background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+				color: white;
+				padding: 20px;
+			}
 
-        const lastContact = agent.last_contact_at
-            ? new Date(agent.last_contact_at).toLocaleString()
-            : "never";
+			.modal-header h2 {
+				font-size: 20px;
+				margin: 0;
+			}
 
-        row.innerHTML = `
-            <td>${agent.id}</td>
-            <td>${agent.name}</td>
-            <td>${lastContact}</td>
-            <td class="status ${agent.is_active ? 'active' : 'inactive'}">
-                ${agent.is_active ? "ACTIVE" : "INACTIVE"}
-            </td>
-            <td>
-                <button class="copy-btn" data-secret="${agent.secret_key}" onclick="copySecretKey(this)">
-                    Copy Secret Key
-                </button>
-            </td>
-        `;
+			.modal-body {
+				padding: 30px;
+			}
 
-        tbody.appendChild(row);
-    });
-}
+			.modal-body label {
+				display: block;
+				margin-bottom: 8px;
+				color: #333;
+				font-weight: 500;
+				font-size: 14px;
+			}
 
-loadAgents();
+			.modal-body input {
+				width: 100%;
+				padding: 10px;
+				border: 2px solid #e0e0e0;
+				border-radius: 8px;
+				font-size: 14px;
+				transition: all 0.3s ease;
+				margin-bottom: 20px;
+			}
 
-/* ---------------- MODAL CONTROL ---------------- */
-function openModal() {
-    document.getElementById("modal").style.display = "block";
-}
+			.modal-body input:focus {
+				outline: none;
+				border-color: #667eea;
+			}
 
-function closeModal() {
-    document.getElementById("modal").style.display = "none";
-}
+			.modal-footer {
+				padding: 20px;
+				background: #f8f9fa;
+				display: flex;
+				justify-content: flex-end;
+				gap: 10px;
+			}
 
-/* ---------------- CREATE AGENT ---------------- */
-async function submitAgent() {
-    const name = document.getElementById("agentName").value;
-    const contractIntervalRaw = document.getElementById("contractInterval").value;
+			.error-message {
+				background: #f8d7da;
+				color: #721c24;
+				padding: 10px;
+				border-radius: 8px;
+				margin-top: 10px;
+				font-size: 14px;
+				display: none;
+			}
 
-    const contract_interval_seconds =
-        contractIntervalRaw && contractIntervalRaw.trim() !== ""
-            ? parseInt(contractIntervalRaw)
-            : 3600;
+			.success-message {
+				background: #d4edda;
+				color: #155724;
+				padding: 10px;
+				border-radius: 8px;
+				margin-top: 10px;
+				font-size: 14px;
+				display: none;
+			}
 
-    const payload = {
-        name: name,
-        contract_interval_seconds: contract_interval_seconds
-    };
+			/* Loading Spinner */
+			.loading {
+				text-align: center;
+				padding: 40px;
+			}
 
-    const csrfToken = getCookie("csrftoken");
+			.spinner {
+				border: 3px solid #f3f3f3;
+				border-top: 3px solid #667eea;
+				border-radius: 50%;
+				width: 40px;
+				height: 40px;
+				animation: spin 1s linear infinite;
+				margin: 0 auto;
+			}
 
-    const res = await fetch("/api/admin/create-agent/", {
-        method: "POST",
-        headers: {
-            "Content-Type": "application/json",
-            "X-CSRFToken": csrfToken
-        },
-        credentials: "same-origin",
-        body: JSON.stringify(payload)
-    });
+			@keyframes spin {
+				0% {
+					transform: rotate(0deg);
+				}
+				100% {
+					transform: rotate(360deg);
+				}
+			}
 
-    const data = await res.json();
+			/* Toast Notification */
+			.toast {
+				position: fixed;
+				bottom: 20px;
+				right: 20px;
+				background: #333;
+				color: white;
+				padding: 12px 20px;
+				border-radius: 8px;
+				font-size: 14px;
+				z-index: 1100;
+				animation: slideInRight 0.3s ease;
+				box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+			}
 
-    if (data.id) {
-        closeModal();
-        loadAgents();
-    } else {
-        alert("Error: " + JSON.stringify(data));
-    }
-}
+			@keyframes slideInRight {
+				from {
+					transform: translateX(100%);
+					opacity: 0;
+				}
+				to {
+					transform: translateX(0);
+					opacity: 1;
+				}
+			}
 
-function copySecretKey(button) {
-    // Get the secret key from the button's data attribute
-    const secretKey = button.getAttribute('data-secret');
+			/* Responsive */
+			@media (max-width: 768px) {
+				.content {
+					padding: 20px;
+					overflow-x: auto;
+				}
 
-    // Create a temporary input element to copy the secret key
-    const tempInput = document.createElement('input');
-    tempInput.value = secretKey;
-    document.body.appendChild(tempInput);
+				.agents-table {
+					font-size: 12px;
+				}
 
-    // Select and copy the value
-    tempInput.select();
-    document.execCommand('copy');
+				.agents-table th,
+				.agents-table td {
+					padding: 10px;
+				}
 
-    // Remove the temporary input element
-    document.body.removeChild(tempInput);
+				.copy-btn {
+					padding: 4px 8px;
+					font-size: 10px;
+				}
+			}
 
-    // Change the clicked button to red
-    button.style.backgroundColor = 'red';
+			/* ID Column - allow wrapping for UUID */
+			.id-column {
+				font-family: monospace;
+				font-size: 12px;
+				max-width: 200px;
+				word-break: break-all;
+			}
+		</style>
+	</head>
 
-    // Reset all other buttons to green
-    const allButtons = document.querySelectorAll('.copy-btn');
-    allButtons.forEach(b => {
-        if (b !== button) {
-            b.style.backgroundColor = '#4CAF50'; // Reset to default blue
-        }
-    });
-}
-</script>
+	<body>
+		<div class="container">
+			<div class="header">
+				<h1>
+					Agents Dashboard
+					<div>
+						<button
+							class="btn btn-primary"
+							onclick="openModal()"
+						>
+							➕ Create Agent
+						</button>
+						<a
+							href="/accounts/logout/"
+							style="text-decoration: none"
+						>
+							<button class="btn btn-danger">🚪 Logout</button>
+						</a>
+					</div>
+				</h1>
+				<p>Manage and monitor your distributed port scanning agents</p>
+			</div>
 
-</body>
+			<div class="content">
+				<table class="agents-table">
+					<thead>
+						<tr>
+							<th>ID</th>
+							<th>Name</th>
+							<th>Last Contact</th>
+							<th>Status</th>
+							<th>Secret Key</th>
+						</tr>
+					</thead>
+					<tbody id="agents-table-body">
+						<tr>
+							<td colspan="5">
+								<div class="loading">
+									<div class="spinner"></div>
+									<p style="margin-top: 10px; color: #666">Loading agents...</p>
+								</div>
+							</td>
+						</tr>
+					</tbody>
+				</table>
+			</div>
+		</div>
+
+		<!-- Create Agent Modal -->
+		<div
+			id="modal"
+			class="modal"
+		>
+			<div class="modal-content">
+				<div class="modal-header">
+					<h2>Create New Agent</h2>
+				</div>
+				<div class="modal-body">
+					<label>Agent Name *</label>
+					<input
+						type="text"
+						id="agentName"
+						placeholder="Enter agent name"
+						maxlength="100"
+					/>
+
+					<label>Contract Interval (seconds)</label>
+					<input
+						type="number"
+						id="contractInterval"
+						placeholder="Default: 3600"
+						value="3600"
+						min="60"
+						max="86400"
+					/>
+
+					<div
+						id="modalError"
+						class="error-message"
+					></div>
+				</div>
+				<div class="modal-footer">
+					<button
+						class="btn btn-secondary"
+						onclick="closeModal()"
+					>
+						Cancel
+					</button>
+					<button
+						class="btn btn-success"
+						onclick="submitAgent()"
+					>
+						Create Agent
+					</button>
+				</div>
+			</div>
+		</div>
+
+		<script>
+			// Global variables
+			let copyTimeout = null
+
+			// CSRF Token helper
+			function getCookie(name) {
+				let cookieValue = null
+				if (document.cookie && document.cookie !== '') {
+					const cookies = document.cookie.split(';')
+					for (let i = 0; i < cookies.length; i++) {
+						const cookie = cookies[i].trim()
+						if (cookie.substring(0, name.length + 1) === name + '=') {
+							cookieValue = decodeURIComponent(
+								cookie.substring(name.length + 1)
+							)
+							break
+						}
+					}
+				}
+				return cookieValue
+			}
+
+			// Show toast notification
+			function showToast(message, isError = false) {
+				const toast = document.createElement('div')
+				toast.className = 'toast'
+				toast.style.background = isError ? '#dc3545' : '#28a745'
+				toast.textContent = message
+				document.body.appendChild(toast)
+
+				setTimeout(() => {
+					toast.remove()
+				}, 3000)
+			}
+
+			// Escape HTML to prevent XSS
+			function escapeHtml(str) {
+				if (!str) return ''
+				return String(str)
+					.replace(/&/g, '&amp;')
+					.replace(/</g, '&lt;')
+					.replace(/>/g, '&gt;')
+					.replace(/"/g, '&quot;')
+					.replace(/'/g, '&#39;')
+			}
+
+			// Format date safely
+			function formatDate(dateString) {
+				if (!dateString) return 'never'
+				try {
+					return new Date(dateString).toLocaleString()
+				} catch (e) {
+					return 'invalid date'
+				}
+			}
+
+			// Copy secret key to clipboard (modern API)
+			async function copySecretKey(button, secretKey) {
+				// Validate secret key
+				if (!secretKey || secretKey === 'undefined' || secretKey === 'null') {
+					showToast('❌ Invalid secret key', true)
+					return
+				}
+
+				try {
+					// Modern clipboard API
+					await navigator.clipboard.writeText(secretKey)
+
+					// Visual feedback
+					const originalText = button.innerHTML
+					button.innerHTML = '✓ Copied!'
+					button.classList.add('copied')
+
+					// Reset after 2 seconds
+					setTimeout(() => {
+						button.innerHTML = originalText
+						button.classList.remove('copied')
+					}, 2000)
+
+					showToast('✅ Secret key copied to clipboard!')
+				} catch (err) {
+					// Fallback for older browsers
+					const textarea = document.createElement('textarea')
+					textarea.value = secretKey
+					textarea.style.position = 'fixed'
+					textarea.style.opacity = '0'
+					document.body.appendChild(textarea)
+					textarea.select()
+
+					try {
+						document.execCommand('copy')
+						showToast('✅ Secret key copied to clipboard!')
+
+						// Visual feedback
+						const originalText = button.innerHTML
+						button.innerHTML = '✓ Copied!'
+						button.classList.add('copied')
+
+						setTimeout(() => {
+							button.innerHTML = originalText
+							button.classList.remove('copied')
+						}, 2000)
+					} catch (e) {
+						showToast('❌ Failed to copy secret key', true)
+					} finally {
+						document.body.removeChild(textarea)
+					}
+				}
+			}
+
+			// Load agents from API
+			async function loadAgents() {
+				const tbody = document.getElementById('agents-table-body')
+
+				try {
+					const response = await fetch('/api/admin/agents/')
+
+					if (!response.ok) {
+						throw new Error(`HTTP ${response.status}: ${response.statusText}`)
+					}
+
+					const data = await response.json()
+
+					if (!data.agents || data.agents.length === 0) {
+						tbody.innerHTML = `
+                        <tr>
+                            <td colspan="5" style="text-align: center; padding: 40px; color: #999;">
+                                📭 No agents found. Create your first agent!
+                            </td>
+                        </tr>
+                    `
+						return
+					}
+
+					tbody.innerHTML = ''
+
+					data.agents.forEach(agent => {
+						const row = document.createElement('tr')
+
+						// Redirect to agent details on row click (except when clicking buttons)
+						row.addEventListener('click', function (event) {
+							if (!event.target.closest('button')) {
+								window.location.href = `/admin-ui/agents/${escapeHtml(agent.id)}/`
+							}
+						})
+
+						const lastContact = formatDate(agent.last_contact_at)
+						const statusClass = agent.is_active
+							? 'status-active'
+							: 'status-inactive'
+						const statusText = agent.is_active ? 'ACTIVE' : 'INACTIVE'
+
+						// Create secret key cell with button
+						const secretKeyCell = document.createElement('td')
+						const copyButton = document.createElement('button')
+						copyButton.className = 'copy-btn'
+						copyButton.innerHTML = '📋 Copy Secret Key'
+						copyButton.setAttribute('data-secret-key', agent.secret_key)
+						copyButton.addEventListener('click', e => {
+							e.stopPropagation() // Prevent row click
+							copySecretKey(copyButton, agent.secret_key)
+						})
+						secretKeyCell.appendChild(copyButton)
+
+						row.innerHTML = `
+                        <td class="id-column">${escapeHtml(agent.id)}</td>
+                        <td><strong>${escapeHtml(agent.name)}</strong></td>
+                        <td>${escapeHtml(lastContact)}</td>
+                        <td><span class="status-badge ${statusClass}">${statusText}</span></td>
+                    `
+						row.appendChild(secretKeyCell)
+
+						tbody.appendChild(row)
+					})
+				} catch (error) {
+					console.error('Error loading agents:', error)
+					tbody.innerHTML = `
+                    <tr>
+                        <td colspan="5" style="text-align: center; padding: 40px; color: #dc3545;">
+                            ❌ Failed to load agents. Please refresh the page.
+                        </td>
+                    </tr>
+                `
+					showToast('❌ Failed to load agents', true)
+				}
+			}
+
+			// Modal control
+			function openModal() {
+				document.getElementById('modal').style.display = 'flex'
+				document.getElementById('agentName').value = ''
+				document.getElementById('contractInterval').value = '3600'
+				document.getElementById('modalError').style.display = 'none'
+			}
+
+			function closeModal() {
+				document.getElementById('modal').style.display = 'none'
+			}
+
+			// Create new agent
+			async function submitAgent() {
+				const name = document.getElementById('agentName').value.trim()
+				const contractIntervalRaw = document
+					.getElementById('contractInterval')
+					.value.trim()
+
+				// Validation
+				if (!name) {
+					const errorDiv = document.getElementById('modalError')
+					errorDiv.style.display = 'block'
+					errorDiv.innerText = 'Please enter an agent name.'
+					return
+				}
+
+				if (name.length > 100) {
+					const errorDiv = document.getElementById('modalError')
+					errorDiv.style.display = 'block'
+					errorDiv.innerText = 'Agent name must be less than 100 characters.'
+					return
+				}
+
+				let contractIntervalSeconds = 3600
+				if (contractIntervalRaw) {
+					contractIntervalSeconds = parseInt(contractIntervalRaw, 10)
+					if (isNaN(contractIntervalSeconds) || contractIntervalSeconds < 60) {
+						const errorDiv = document.getElementById('modalError')
+						errorDiv.style.display = 'block'
+						errorDiv.innerText =
+							'Contract interval must be at least 60 seconds.'
+						return
+					}
+					if (contractIntervalSeconds > 86400) {
+						const errorDiv = document.getElementById('modalError')
+						errorDiv.style.display = 'block'
+						errorDiv.innerText =
+							'Contract interval cannot exceed 86400 seconds (24 hours).'
+						return
+					}
+				}
+
+				const payload = {
+					name: name,
+					contract_interval_seconds: contractIntervalSeconds
+				}
+
+				const csrfToken = getCookie('csrftoken')
+
+				if (!csrfToken) {
+					showToast('❌ CSRF token not found. Please refresh the page.', true)
+					return
+				}
+
+				try {
+					const response = await fetch('/api/admin/create-agent/', {
+						method: 'POST',
+						headers: {
+							'Content-Type': 'application/json',
+							'X-CSRFToken': csrfToken
+						},
+						credentials: 'same-origin',
+						body: JSON.stringify(payload)
+					})
+
+					const data = await response.json()
+
+					if (response.ok && data.id) {
+						closeModal()
+						await loadAgents()
+						showToast(`✅ Agent "${escapeHtml(name)}" created successfully!`)
+					} else {
+						const errorDiv = document.getElementById('modalError')
+						errorDiv.style.display = 'block'
+						errorDiv.innerText =
+							data.error ||
+							data.message ||
+							'Failed to create agent. Please try again.'
+					}
+				} catch (error) {
+					console.error('Error creating agent:', error)
+					const errorDiv = document.getElementById('modalError')
+					errorDiv.style.display = 'block'
+					errorDiv.innerText =
+						'Network error. Please check your connection and try again.'
+				}
+			}
+
+			// Close modal when clicking outside
+			window.onclick = function (event) {
+				const modal = document.getElementById('modal')
+				if (event.target === modal) {
+					closeModal()
+				}
+			}
+
+			// Load agents on page load
+			document.addEventListener('DOMContentLoaded', () => {
+				loadAgents()
+			})
+		</script>
+	</body>
 </html>
