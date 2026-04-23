@@ -1,0 +1,69 @@
+{% load i18n %}
+{% load static %}
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="UTF-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>
+            {% block head_title %}
+            {% endblock head_title %}
+        </title>
+        
+        <!-- Подключаем твой красивый CSS -->
+        <link rel="stylesheet" href="{% static 'css/allauth_custom.css' %}">
+        
+        {% block extra_head %}
+        {% endblock extra_head %}
+    </head>
+    <body>
+        <div class="auth-container">
+            {% block body %}
+                {# Уведомления (Messages) #}
+                {% if messages %}
+                    <div class="messages">
+                        {% for message in messages %}
+                            <div class="alert {% if message.tags %}alert-{{ message.tags }}{% endif %}">
+                                {{ message }}
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+
+                {# Навигация / Меню #}
+                <nav class="auth-nav">
+                    <ul class="nav-list">
+                        {% if user.is_authenticated %}
+                            {% url 'account_email' as email_url_ %}
+                            {% if email_url_ %}<li><a href="{{ email_url_ }}">{% trans "Change Email" %}</a></li>{% endif %}
+                            
+                            {% url 'account_change_password' as change_password_url_ %}
+                            {% if change_password_url_ %}<li><a href="{{ change_password_url_ }}">{% trans "Change Password" %}</a></li>{% endif %}
+                            
+                            {% url 'account_logout' as logout_url_ %}
+                            {% if logout_url_ %}<li><a href="{{ logout_url_ }}">{% trans "Sign Out" %}</a></li>{% endif %}
+                        {% else %}
+                            {% url 'account_login' as login_url_ %}
+                            {% if login_url_ %}<li><a href="{{ login_url_ }}">{% trans "Sign In" %}</a></li>{% endif %}
+                            
+                            {% url 'account_signup' as signup_url_ %}
+                            {% if signup_url_ %}<li><a href="{{ signup_url_ }}">{% trans "Sign Up" %}</a></li>{% endif %}
+                        {% endif %}
+                    </ul>
+                </nav>
+
+                <hr style="margin: 1.5rem 0; border: 0; border-top: 1px solid #eee;">
+
+                {# Основной контент (формы входа, регистрации и т.д.) #}
+                <div class="auth-content">
+                    {% block content %}
+                    {% endblock content %}
+                </div>
+            {% endblock body %}
+        </div>
+
+        {% block extra_body %}
+        {% endblock extra_body %}
+    </body>
+</html>

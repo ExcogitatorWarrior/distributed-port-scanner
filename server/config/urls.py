@@ -18,12 +18,22 @@ from django.contrib import admin
 from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
+from django.shortcuts import redirect
+from django.views.static import serve
+import os
 
 urlpatterns = [
+    path('', lambda request: redirect('accounts/login/', permanent=False)),
+    path('accounts/signup/', lambda request: redirect('/accounts/login/', permanent=False)),
+    
     path('admin/', admin.site.urls),
     path('accounts/', include('allauth.urls')),
     # scanner API
     path("", include("scanner_api.urls")),
+    path('static/css/allauth_custom.css', serve, {
+        'document_root': os.path.join(settings.BASE_DIR, 'static/css'),
+        'path': 'allauth_custom.css'
+    }),
 ]
 
 if settings.DEBUG:

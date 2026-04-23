@@ -408,6 +408,9 @@
 				<h1>
 					Agents Dashboard
 					<div>
+						<button class="btn btn-danger" onclick="openDeleteModal()">
+    					Delete Agent by ID
+						</button>
 						<button
 							class="btn btn-primary"
 							onclick="openModal()"
@@ -499,6 +502,35 @@
 				</div>
 			</div>
 		</div>
+
+		<!-- Delete Agent Modal -->
+<div id="deleteModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2>Delete Agent</h2>
+        </div>
+        <div class="modal-body">
+            <label>Agent ID *</label>
+            <input
+                type="text"
+                id="deleteAgentId"
+                placeholder="Enter agent UUID (e.g. 123e4567-e89b...)"
+            />
+            <div id="deleteModalError" class="error-message" style="display: none; color: red;"></div>
+            <p style="margin-top: 10px; font-size: 0.9em; color: #666;">
+                Warning: This action cannot be undone.
+            </p>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-secondary" onclick="closeDeleteModal()">
+                Cancel
+            </button>
+            <button class="btn btn-danger" id="confirmDeleteBtn" onclick="submitDeleteAgent()" style="background-color: #dc3545; color: white;">
+                Delete Agent
+            </button>
+        </div>
+    </div>
+</div>
 
 		<script>
 			// Global variables
@@ -793,6 +825,72 @@
 					closeModal()
 				}
 			}
+
+			// Контроль модального окна удаления
+function openDeleteModal() {
+    document.getElementById('deleteModal').style.display = 'flex'
+    document.getElementById('deleteAgentId').value = ''
+    document.getElementById('deleteModalError').style.display = 'none'
+}
+
+function closeDeleteModal() {
+    document.getElementById('deleteModal').style.display = 'none'
+}
+
+// Отправка запроса на удаление
+async function submitDeleteAgent() {
+    const agentId = document.getElementById('deleteAgentId').value.trim()
+    const errorDiv = document.getElementById('deleteModalError')
+    
+    // Валидация ID
+    if (!agentId) {
+        errorDiv.style.display = 'block'
+        errorDiv.innerText = 'Please enter an agent ID.'
+        return
+    }
+
+    const csrfToken = getCookie('csrftoken')
+    if (!csrfToken) {
+        showToast('❌ CSRF token not found. Please refresh the page.', true)
+        return
+    }
+
+    // Блокируем кнопку, чтобы избежать двойных кликов
+    const deleteBtn = document.getElementById('confirmDeleteBtn')
+    deleteBtn.disabled = true
+    deleteBtn.innerText = 'Deleting...'
+
+    try {
+        // Убедись, что URL /api/admin/delete-agent/ совпадает с твоим urls.py
+        const response = await fetch('/api/admin/delete-agent/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrfToken
+            },
+            credentials: 'same-origin',
+            body: JSON.stringify({ id: agentId })
+        })
+
+        const data = await response.json()
+
+        if (response.ok) {
+            closeDeleteModal()
+            if (typeof loadAgents === 'function') await loadAgents()
+            showToast(`✅ Agent "${data.name || agentId}" deleted successfully!`)
+        } else {
+            errorDiv.style.display = 'block'
+            errorDiv.innerText = data.error || 'Failed to delete agent.'
+        }
+    } catch (error) {
+        console.error('Error deleting agent:', error)
+        errorDiv.style.display = 'block'
+        errorDiv.innerText = 'Network error. Please try again.'
+    } finally {
+        deleteBtn.disabled = false
+        deleteBtn.innerText = 'Delete Agent'
+    }
+}
 
 			// Load agents on page load
 			document.addEventListener('DOMContentLoaded', () => {

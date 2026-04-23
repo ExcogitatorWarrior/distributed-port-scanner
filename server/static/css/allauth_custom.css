@@ -1,0 +1,150 @@
+/* static/css/allauth_custom.css */
+
+:root {
+    --primary-color: #4f46e5;
+    --primary-hover: #4338ca;
+    --bg-color: #f9fafb;
+    --text-color: #1f2937;
+    --border-color: #d1d5db;
+}
+
+body {
+    background-color: var(--bg-color);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    color: var(--text-color);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    margin: 0;
+}
+
+/* Контейнер для формы */
+.auth-container {
+    background: white;
+    padding: 2.5rem;
+    border-radius: 12px;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    width: 100%;
+    max-width: 400px;
+}
+
+h1 {
+    font-size: 1.5rem;
+    font-weight: 700;
+    margin-bottom: 1.5rem;
+    text-align: center;
+}
+
+/* Стилизация p-тегов внутри {{ form.as_p }} */
+form p {
+    margin-bottom: 1rem;
+    display: flex;
+    flex-direction: column;
+}
+
+label {
+    font-size: 0.875rem;
+    font-weight: 500;
+    margin-bottom: 0.25rem;
+}
+
+/* Стилизация всех инпутов */
+input[type="text"],
+input[type="email"],
+input[type="password"],
+input[type="number"] {
+    width: 100%;
+    padding: 0.625rem;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    font-size: 1rem;
+    box-sizing: border-box; /* Важно для ширины */
+}
+
+input:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+}
+
+/* Чекбоксы (Запомнить меня) */
+input[type="checkbox"] {
+    margin-right: 0.5rem;
+    width: auto;
+}
+
+/* Кнопка отправки */
+button[type="submit"] {
+    width: 100%;
+    background-color: var(--primary-color);
+    color: white;
+    padding: 0.75rem;
+    border: none;
+    border-radius: 6px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color 0.2s;
+    margin-top: 1rem;
+}
+
+button[type="submit"]:hover {
+    background-color: var(--primary-hover);
+}
+
+/* Ссылки (Забыли пароль и т.д.) */
+a {
+    color: var(--primary-color);
+    text-decoration: none;
+    font-size: 0.875rem;
+}
+
+a:hover {
+    text-decoration: underline;
+}
+
+/* Сообщения об ошибках */
+.errorlist {
+    color: #dc2626;
+    padding: 0;
+    list-style: none;
+    font-size: 0.875rem;
+    margin-bottom: 1rem;
+}
+
+/* Стили для навигации внутри карточки */
+.nav-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    justify-content: center;
+    font-size: 0.8rem;
+}
+
+.nav-list a {
+    color: #666;
+    text-decoration: none;
+    border-bottom: 1px dashed #ccc;
+}
+
+.nav-list a:hover {
+    color: var(--primary-color);
+    border-bottom-style: solid;
+}
+
+/* Стили для сообщений (alert) */
+.messages {
+    margin-bottom: 1rem;
+}
+.alert {
+    padding: 10px;
+    border-radius: 6px;
+    background-color: #fef2f2;
+    color: #991b1b;
+    font-size: 0.875rem;
+    border: 1px solid #fee2e2;
+}

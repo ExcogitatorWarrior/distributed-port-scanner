@@ -12,6 +12,7 @@ from .views import (
     admin_ui_agents,
     agent_detail_page,
     update_allowed_ports,
+    delete_agent,
 )
 
 urlpatterns = [
@@ -35,4 +36,5 @@ urlpatterns = [
     path("admin-ui/agents/<uuid:agent_id>/", agent_detail_page, name="agent_detail_page"),
 
     path('api/admin/task-item/<int:task_item_id>/update-allowed-ports/', update_allowed_ports, name="update_allowed_ports"),
+    path('api/admin/delete-agent/', delete_agent),
 ]

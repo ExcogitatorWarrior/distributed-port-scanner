@@ -499,3 +499,32 @@ def update_allowed_ports(request, task_item_id):
         return JsonResponse({"error": str(e)}, status=500)
 
 
+@staff_member_required
+def delete_agent(request):
+    if request.method != "POST":
+        return JsonResponse({"error": "POST only"}, status=405)
+
+    try:
+        data = json.loads(request.body.decode("utf-8"))
+    except Exception:
+        return JsonResponse({"error": "invalid JSON"}, status=400)
+
+    agent_id = data.get("id")
+
+    if not agent_id:
+        return JsonResponse({"error": "missing id"}, status=400)
+
+    try:
+        # Пытаемся найти агента, если UUID невалидный или не найден - кидаем ошибку
+        agent = Agent.objects.get(id=agent_id)
+    except (Agent.DoesNotExist, ValueError, ValidationError):
+        return JsonResponse({"error": "agent not found"}, status=404)
+
+    agent_name = agent.name
+    agent.delete()
+
+    return JsonResponse({
+        "status": "success",
+        "id": str(agent_id),
+        "name": agent_name
+    })
