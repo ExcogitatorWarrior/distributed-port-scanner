@@ -82,3 +82,22 @@ class TaskItem(models.Model):
     )
 
     created_at = models.DateTimeField(auto_now_add=True)
+
+class AutoTask(models.Model):
+    name = models.CharField(max_length=255)
+
+    # Поля agent здесь нет, так как задача "общая"
+    
+    targets_raw = models.JSONField()
+    ports = models.JSONField(default=list)
+
+    # Как часто создаваемая задача должна запускаться у агента
+    schedule = models.CharField(max_length=20, default="once")
+
+    # Активен ли сам шаблон автозадачи
+    is_active = models.BooleanField(default=True)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"AutoTask: {self.name}"

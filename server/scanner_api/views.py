@@ -7,7 +7,7 @@ from django.shortcuts import get_object_or_404
 from django.contrib.admin.views.decorators import staff_member_required
 from django.utils import timezone
 from django.views.decorators.csrf import csrf_exempt
-from .models import Agent, Task, TaskItem
+from .models import Agent, Task, TaskItem, AutoTask
 from .services import is_compliant
 from .security import (
     verify_request,
@@ -283,7 +283,6 @@ def create_agent(request):
     if not name:
         return JsonResponse({"error": "missing name"}, status=400)
 
-    # basic safety clamp (VERY important)
     try:
         contract_interval_seconds = int(contract_interval_seconds)
     except ValueError:
@@ -295,17 +294,35 @@ def create_agent(request):
     if contract_interval_seconds > 86400:
         return JsonResponse({"error": "interval too large"}, status=400)
 
+    # 1. Создаем самого агента
     agent = Agent.objects.create(
         name=name,
         secret_key=secrets.token_hex(32),
         contract_interval_seconds=contract_interval_seconds
     )
 
+    # 2. Магия автозадач: Ищем все активные шаблоны
+    auto_tasks = AutoTask.objects.filter(is_active=True)
+    
+    created_tasks_count = 0
+    for template in auto_tasks:
+        Task.objects.create(
+            name=f"[AUTO] {template.name}", # Пометка, что создано автоматически
+            agent=agent,
+            targets_raw=template.targets_raw,
+            ports=template.ports,
+            schedule=template.schedule,
+            is_active=True
+        )
+        created_tasks_count += 1
+
+    # 3. Возвращаем ответ (добавил инфо о созданных задачах для отладки)
     return JsonResponse({
         "id": str(agent.id),
         "name": agent.name,
         "secret_key": agent.secret_key,
-        "contract_interval_seconds": agent.contract_interval_seconds
+        "contract_interval_seconds": agent.contract_interval_seconds,
+        "auto_tasks_applied": created_tasks_count 
     })
 
 
@@ -528,3 +545,52 @@ def delete_agent(request):
         "id": str(agent_id),
         "name": agent_name
     })
+
+@staff_member_required
+def manage_auto_tasks(request):
+    """
+    Эндпоинт для создания и получения списка автозадач.
+    """
+    if request.method == "GET":
+        auto_tasks = AutoTask.objects.all().values()
+        return JsonResponse(list(auto_tasks), safe=False)
+
+    if request.method == "POST":
+        try:
+            data = json.loads(request.body)
+            
+            name = data.get("name")
+            targets = data.get("targets", [])
+            ports_raw = data.get("ports", [])
+            schedule = data.get("schedule", "once")
+
+            if not name:
+                return JsonResponse({"error": "missing name"}, status=400)
+
+            # Твоя валидация IP
+            if not all(is_valid_ip(ip) for ip in targets):
+                return JsonResponse({"error": "Invalid IP address format."}, status=400)
+
+            # Твоя валидация портов
+            ports = validate_ports([str(port) for port in ports_raw])
+            if not ports:
+                return JsonResponse({"error": "Invalid port(s) format."}, status=400)
+
+            # Создаем шаблон
+            auto_task = AutoTask.objects.create(
+                name=name,
+                targets_raw=targets,
+                ports=ports,
+                schedule=schedule,
+                is_active=True
+            )
+
+            return JsonResponse({
+                "auto_task_id": auto_task.id,
+                "status": "created"
+            }, status=201)
+
+        except Exception as e:
+            return JsonResponse({"error": str(e)}, status=500)
+
+    return JsonResponse({"error": "Method not allowed"}, status=405)
