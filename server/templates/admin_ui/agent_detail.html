@@ -9,460 +9,222 @@
 		/>
 
 		<style>
-			* {
-				margin: 0;
-				padding: 0;
-				box-sizing: border-box;
-			}
+    * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+    }
 
-			body {
-				font-family:
-					-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
-					'Helvetica Neue', Arial, sans-serif;
-				background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-				min-height: 100vh;
-				padding: 40px 20px;
-			}
+    body {
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        min-height: 100vh;
+        padding: 20px;
+    }
 
-			.container {
-				max-width: 1200px;
-				margin: 0 auto;
-				background: white;
-				border-radius: 20px;
-				box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-				overflow: hidden;
-				animation: slideIn 0.5s ease-out;
-			}
+    .container {
+        max-width: 1200px;
+        margin: 0 auto;
+        background: white;
+        border-radius: 12px;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        overflow: hidden;
+    }
 
-			@keyframes slideIn {
-				from {
-					opacity: 0;
-					transform: translateY(-30px);
-				}
-				to {
-					opacity: 1;
-					transform: translateY(0);
-				}
-			}
+    /* Header */
+    .header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 20px 30px;
+    }
 
-			/* Header Styles */
-			.header {
-				background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-				color: white;
-				padding: 30px 40px;
-			}
+    .header h1 {
+        font-size: 22px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 15px;
+    }
 
-			.header h1 {
-				font-size: 28px;
-				margin-bottom: 10px;
-				display: flex;
-				justify-content: space-between;
-				align-items: center;
-				flex-wrap: wrap;
-				gap: 15px;
-			}
+    .agent-info {
+        background: rgba(255, 255, 255, 0.1);
+        padding: 12px;
+        border-radius: 8px;
+        margin-top: 15px;
+        display: flex;
+        gap: 20px;
+    }
 
-			.agent-info {
-				background: rgba(255, 255, 255, 0.1);
-				padding: 15px;
-				border-radius: 10px;
-				margin-top: 15px;
-				display: flex;
-				gap: 20px;
-				flex-wrap: wrap;
-			}
+    .agent-info-item label {
+        font-size: 11px;
+        opacity: 0.8;
+        display: block;
+        text-transform: uppercase;
+    }
 
-			.agent-info-item {
-				flex: 1;
-				min-width: 150px;
-			}
+    .agent-info-item span {
+        font-size: 14px;
+        font-weight: 500;
+    }
 
-			.agent-info-item label {
-				font-size: 12px;
-				opacity: 0.9;
-				display: block;
-				margin-bottom: 5px;
-			}
+    /* Content Area */
+    .content {
+        padding: 25px;
+    }
 
-			.agent-info-item span {
-				font-size: 16px;
-				font-weight: 500;
-			}
+    .section-title {
+        font-size: 18px;
+        font-weight: 600;
+        color: #333;
+        margin-bottom: 15px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
 
-			/* Button Styles */
-			.btn {
-				padding: 10px 20px;
-				border: none;
-				border-radius: 8px;
-				font-size: 14px;
-				font-weight: 500;
-				cursor: pointer;
-				transition: all 0.3s ease;
-				text-decoration: none;
-				display: inline-flex;
-				align-items: center;
-				gap: 8px;
-			}
+    /* EXCEL-STYLE TASK LIST */
+    .task-list {
+        list-style: none;
+        border: 1px solid #e2e8f0;
+        border-radius: 8px;
+        background: white;
+    }
 
-			.btn-primary {
-				background: white;
-				color: #667eea;
-			}
+    .task-item {
+        border-bottom: 1px solid #edf2f7;
+        transition: background 0.2s;
+    }
 
-			.btn-primary:hover {
-				transform: translateY(-2px);
-				box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
-			}
+    .task-item:last-child {
+        border-bottom: none;
+    }
 
-			.btn-danger {
-				background: #ff4757;
-				color: white;
-			}
+    /* Строка заголовка (Task) */
+    .task-header {
+        padding: 10px 15px;
+        cursor: pointer;
+        display: grid;
+        /* Сетка: Иконка, Имя, Таргеты, Порты, График, Статус */
+        grid-template-columns: 24px 2fr 1.5fr 1fr 1fr 100px;
+        gap: 12px;
+        align-items: center;
+        font-size: 13px;
+        background: white;
+    }
 
-			.btn-danger:hover {
-				background: #ff3838;
-				transform: translateY(-2px);
-			}
+    .task-header:hover {
+        background: #f8fafc;
+    }
 
-			.btn-success {
-				background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-				color: white;
-			}
+    /* Иконка стрелочки */
+    .task-header::before {
+        content: '▶';
+        font-size: 9px;
+        color: #a0aec0;
+        transition: transform 0.2s;
+        text-align: center;
+    }
 
-			.btn-success:hover {
-				transform: translateY(-2px);
-				box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
-			}
+    .task-item.active .task-header::before {
+        transform: rotate(90deg);
+    }
 
-			.btn-secondary {
-				background: #e0e0e0;
-				color: #666;
-			}
+    .task-name { font-weight: 600; color: #2d3748; }
+    .task-targets, .task-ports, .task-schedule { 
+        color: #718096; 
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
 
-			.btn-secondary:hover {
-				background: #d0d0d0;
-			}
+    /* Вложенные элементы (TaskItems) */
+    .task-details {
+        display: none;
+        background: #f7fafc;
+        border-top: 1px solid #edf2f7;
+        padding: 0;
+    }
 
-			.btn-back {
-				background: rgba(255, 255, 255, 0.2);
-				color: white;
-				border: 1px solid rgba(255, 255, 255, 0.3);
-			}
+    .task-item.active .task-details {
+        display: block;
+    }
 
-			.btn-back:hover {
-				background: rgba(255, 255, 255, 0.3);
-				transform: translateY(-2px);
-			}
+    .task-details ul { list-style: none; }
 
-			/* Content Styles */
-			.content {
-				padding: 40px;
-			}
+    .task-details li {
+        padding: 8px 15px 8px 50px; /* Сдвиг вправо */
+        border-bottom: 1px solid #e2e8f0;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-size: 12px;
+        transition: background 0.2s;
+    }
 
-			.section-title {
-				font-size: 24px;
-				color: #333;
-				margin-bottom: 20px;
-				display: flex;
-				align-items: center;
-				gap: 10px;
-			}
+    .task-details li:last-child { border-bottom: none; }
+    .task-details li:hover { background: #edf2f7; }
 
-			.section-title::before {
-				content: '';
-				width: 4px;
-				height: 24px;
-				background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-				border-radius: 2px;
-			}
+    /* Цвета статусов хостов */
+    .task-details li.alert { border-left: 4px solid #f56565; background: #fff5f5; }
+    .task-details li.done { border-left: 4px solid #48bb78; }
+    .task-details li.running { border-left: 4px solid #ed8936; }
 
-			/* Task List Styles */
-			.task-list {
-				list-style: none;
-			}
+    /* Status Badges */
+    .status {
+        padding: 2px 8px;
+        border-radius: 4px;
+        font-size: 10px;
+        font-weight: 700;
+        text-transform: uppercase;
+        display: inline-block;
+    }
+    .status.active { background: #c6f6d5; color: #22543d; }
+    .status.inactive { background: #fed7d7; color: #822727; }
 
-			.task-item {
-				background: #f8f9fa;
-				border-radius: 12px;
-				margin-bottom: 15px;
-				border: 1px solid #e0e0e0;
-				transition: all 0.3s ease;
-				overflow: hidden;
-			}
+    /* Buttons */
+    .btn {
+        padding: 8px 16px;
+        border-radius: 6px;
+        font-size: 13px;
+        font-weight: 500;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        border: none;
+        transition: 0.2s;
+        text-decoration: none;
+    }
+    .btn-primary { background: white; color: #667eea; }
+    .btn-danger { background: #f56565; color: white; }
+    .btn-success { background: #48bb78; color: white; }
+    .btn-secondary { background: #edf2f7; color: #4a5568; }
+    .btn-back { background: rgba(255,255,255,0.2); color: white; border: 1px solid rgba(255,255,255,0.3); }
+    .btn:hover { transform: translateY(-1px); opacity: 0.9; }
 
-			.task-item:hover {
-				box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
-				transform: translateY(-2px);
-			}
+    /* Modal */
+    .modal {
+        display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+        background: rgba(0, 0, 0, 0.5); backdrop-filter: blur(4px);
+        justify-content: center; align-items: center; z-index: 1000;
+    }
+    .modal-content {
+        background: white; border-radius: 12px; width: 450px; overflow: hidden;
+        box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1);
+    }
+    .modal-header { background: #667eea; color: white; padding: 15px 20px; }
+    .modal-body { padding: 20px; }
+    .modal-body label { display: block; font-size: 12px; font-weight: 600; margin-bottom: 5px; color: #4a5568; }
+    .modal-body input { width: 100%; padding: 8px; border: 1px solid #e2e8f0; border-radius: 6px; margin-bottom: 15px; }
+    .modal-footer { padding: 15px; background: #f8fafc; display: flex; justify-content: flex-end; gap: 10px; }
 
-			.task-header {
-				padding: 20px;
-				cursor: pointer;
-				display: grid;
-				grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-				gap: 15px;
-				align-items: center;
-				background: white;
-				transition: background 0.3s ease;
-			}
-
-			.task-header:hover {
-				background: #f8f9fa;
-			}
-
-			.task-name {
-				font-weight: 600;
-				color: #333;
-				font-size: 16px;
-			}
-
-			.task-targets,
-			.task-ports,
-			.task-schedule {
-				color: #666;
-				font-size: 14px;
-			}
-
-			.status {
-				padding: 4px 12px;
-				border-radius: 20px;
-				font-size: 12px;
-				font-weight: 600;
-				text-align: center;
-				display: inline-block;
-			}
-
-			.status.active {
-				background: #d4edda;
-				color: #155724;
-			}
-
-			.status.inactive {
-				background: #f8d7da;
-				color: #721c24;
-			}
-
-			.task-details {
-				display: none;
-				padding: 20px;
-				background: #f8f9fa;
-				border-top: 1px solid #e0e0e0;
-				animation: fadeIn 0.3s ease;
-			}
-
-			@keyframes fadeIn {
-				from {
-					opacity: 0;
-					transform: translateY(-10px);
-				}
-				to {
-					opacity: 1;
-					transform: translateY(0);
-				}
-			}
-
-			.task-item.active .task-details {
-				display: block;
-			}
-
-			.task-details ul {
-				list-style: none;
-			}
-
-			.task-details li {
-				background: white;
-				padding: 15px;
-				border-radius: 8px;
-				margin-bottom: 10px;
-				border-left: 4px solid #667eea;
-				display: flex;
-				justify-content: space-between;
-				align-items: center;
-				flex-wrap: wrap;
-				gap: 10px;
-				transition: all 0.3s ease;
-			}
-
-			.task-details li:hover {
-				transform: translateX(5px);
-				box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-			}
-
-			.task-details li.alert {
-				border-left-color: #ff4757;
-				background: #fff5f5;
-			}
-
-			.task-details li.done {
-				border-left-color: #28a745;
-				background: #f0fff4;
-			}
-
-			.task-details li.running {
-				border-left-color: #ffc107;
-				background: #fffbf0;
-			}
-
-			.task-info {
-				flex: 1;
-				font-size: 14px;
-				color: #555;
-			}
-
-			.btn-small {
-				padding: 6px 12px;
-				font-size: 12px;
-				background: #667eea;
-				color: white;
-				border: none;
-				border-radius: 6px;
-				cursor: pointer;
-				transition: all 0.3s ease;
-			}
-
-			.btn-small:hover {
-				background: #5a67d8;
-				transform: translateY(-1px);
-			}
-
-			/* Modal Styles */
-			.modal {
-				display: none;
-				position: fixed;
-				top: 0;
-				left: 0;
-				width: 100%;
-				height: 100%;
-				background: rgba(0, 0, 0, 0.6);
-				justify-content: center;
-				align-items: center;
-				z-index: 1000;
-				animation: fadeIn 0.3s ease;
-			}
-
-			.modal-content {
-				background: white;
-				border-radius: 20px;
-				width: 90%;
-				max-width: 500px;
-				animation: slideUp 0.3s ease;
-				overflow: hidden;
-			}
-
-			@keyframes slideUp {
-				from {
-					transform: translateY(50px);
-					opacity: 0;
-				}
-				to {
-					transform: translateY(0);
-					opacity: 1;
-				}
-			}
-
-			.modal-header {
-				background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-				color: white;
-				padding: 20px;
-			}
-
-			.modal-header h2 {
-				font-size: 20px;
-				margin: 0;
-			}
-
-			.modal-body {
-				padding: 30px;
-			}
-
-			.modal-body label {
-				display: block;
-				margin-bottom: 8px;
-				color: #333;
-				font-weight: 500;
-				font-size: 14px;
-			}
-
-			.modal-body input,
-			.modal-body textarea {
-				width: 100%;
-				padding: 10px;
-				border: 2px solid #e0e0e0;
-				border-radius: 8px;
-				font-size: 14px;
-				transition: all 0.3s ease;
-				margin-bottom: 20px;
-			}
-
-			.modal-body input:focus,
-			.modal-body textarea:focus {
-				outline: none;
-				border-color: #667eea;
-			}
-
-			.modal-footer {
-				padding: 20px;
-				background: #f8f9fa;
-				display: flex;
-				justify-content: flex-end;
-				gap: 10px;
-			}
-
-			.error-message {
-				background: #f8d7da;
-				color: #721c24;
-				padding: 10px;
-				border-radius: 8px;
-				margin-top: 10px;
-				font-size: 14px;
-				display: none;
-			}
-
-			/* Loading Spinner */
-			.loading {
-				text-align: center;
-				padding: 40px;
-			}
-
-			.spinner {
-				border: 3px solid #f3f3f3;
-				border-top: 3px solid #667eea;
-				border-radius: 50%;
-				width: 40px;
-				height: 40px;
-				animation: spin 1s linear infinite;
-				margin: 0 auto;
-			}
-
-			@keyframes spin {
-				0% {
-					transform: rotate(0deg);
-				}
-				100% {
-					transform: rotate(360deg);
-				}
-			}
-
-			/* Responsive */
-			@media (max-width: 768px) {
-				.content {
-					padding: 20px;
-				}
-
-				.task-header {
-					grid-template-columns: 1fr;
-				}
-
-				.task-details li {
-					flex-direction: column;
-					align-items: flex-start;
-				}
-
-				.btn-small {
-					align-self: flex-end;
-				}
-			}
-		</style>
+    /* Spinner */
+    .spinner {
+        border: 3px solid #f3f3f3; border-top: 3px solid #667eea;
+        border-radius: 50%; width: 30px; height: 30px; animation: spin 1s linear infinite; margin: 20px auto;
+    }
+    @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+</style>
 	</head>
 
 	<body>
@@ -683,7 +445,7 @@
 
 						agent.tasks.forEach(task => {
 							const taskItem = document.createElement('li')
-							taskItem.className = 'task-item'
+							taskItem.className = 'task-item active'
 
 							// Безопасная обработка данных
 							const safeTaskName = escapeHtml(task.name || 'Unnamed Task')

@@ -11,6 +11,7 @@ https://docs.djangoproject.com/en/6.0/ref/settings/
 """
 
 from pathlib import Path
+from django.urls import reverse_lazy
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -137,5 +138,13 @@ STATICFILES_DIRS = [
     BASE_DIR / "static",
 ]
 
+LOGIN_URL = '/accounts/login/'
 LOGIN_REDIRECT_URL = '/admin-ui/agents/'
 LOGOUT_REDIRECT_URL = '/accounts/login/'
+ACCOUNT_LOGOUT_REDIRECT_URL = '/accounts/login/'
+
+# Zabbix Settings
+IS_ZABBIX_SENDER_ACTIVE = False  # Переключи в False, чтобы выключить отправку
+ZABBIX_SERVER = 'localhost'
+ZABBIX_PORT = 10051
+ZABBIX_HOST_NAME = 'Django-API-Server'

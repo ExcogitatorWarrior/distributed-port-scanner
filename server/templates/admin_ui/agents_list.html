@@ -399,6 +399,58 @@
 				max-width: 200px;
 				word-break: break-all;
 			}
+			.btn-nav-auto {
+    display: inline-flex;
+    align-items: center;
+    padding: 10px 20px;
+    background-color: #5a67d8; /* Индиго цвет */
+    color: white;
+    text-decoration: none;
+    border-radius: 6px;
+    font-weight: 600;
+    font-size: 14px;
+    transition: background-color 0.2s, transform 0.1s;
+    border: none;
+    cursor: pointer;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.btn-nav-auto:hover {
+    background-color: #4c51bf;
+    color: #ffffff;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.15);
+}
+
+.btn-nav-auto:active {
+    transform: translateY(0);
+}
+
+.btn-nav-auto .icon {
+    margin-right: 8px;
+    font-size: 16px;
+}
+.row-alert {
+    background-color: #fff5f5 !important; /* Очень светлый красный */
+}
+
+/* Пульсирующий бейдж Алерта */
+.status-alert {
+    background-color: #f56565;
+    color: white;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: bold;
+    animation: pulse-red 2s infinite;
+    margin-left: 8px;
+}
+
+@keyframes pulse-red {
+    0% { box-shadow: 0 0 0 0 rgba(245, 101, 101, 0.7); }
+    70% { box-shadow: 0 0 0 10px rgba(245, 101, 101, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(245, 101, 101, 0); }
+}
 		</style>
 	</head>
 
@@ -408,6 +460,10 @@
 				<h1>
 					Agents Dashboard
 					<div>
+						<a href="/admin-ui/auto-tasks/" class="btn-nav-auto">
+    						<span class="icon">⚙️</span> Manage Auto-Tasks
+						</a>
+
 						<button class="btn btn-danger" onclick="openDeleteModal()">
     					Delete Agent by ID
 						</button>
@@ -684,6 +740,11 @@
 							: 'status-inactive'
 						const statusText = agent.is_active ? 'ACTIVE' : 'INACTIVE'
 
+						const alertBadge = agent.status === 'Alert' 
+       					 	? '<span class="status-alert">⚠️ ALERT</span>' 
+        					: '';
+
+
 						// Create secret key cell with button
 						const secretKeyCell = document.createElement('td')
 						const copyButton = document.createElement('button')
@@ -697,11 +758,14 @@
 						secretKeyCell.appendChild(copyButton)
 
 						row.innerHTML = `
-                        <td class="id-column">${escapeHtml(agent.id)}</td>
-                        <td><strong>${escapeHtml(agent.name)}</strong></td>
-                        <td>${escapeHtml(lastContact)}</td>
-                        <td><span class="status-badge ${statusClass}">${statusText}</span></td>
-                    `
+        					<td class="id-column">${escapeHtml(agent.id)}</td>
+        					<td><strong>${escapeHtml(agent.name)}</strong></td>
+        					<td>${escapeHtml(lastContact)}</td>
+       						<td>
+           					<span class="status-badge ${statusClass}">${statusText}</span>
+            				${alertBadge} 
+        					</td>
+    						`
 						row.appendChild(secretKeyCell)
 
 						tbody.appendChild(row)

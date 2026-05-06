@@ -1,2 +1,9 @@
 requests>=2.33.1
-cryptography>=46.0.7
+psutil>=7.2.2
+cryptography>=47.0.0
+cffi>=2.0.0
+urllib3>=2.6.3
+charset-normalizer>=3.4.7
+idna>=3.13
+certifi>=2026.4.22
+pycparser>=3.0

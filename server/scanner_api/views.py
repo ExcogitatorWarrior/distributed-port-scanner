@@ -1,11 +1,14 @@
 import uuid
 import secrets
-from django.core.exceptions import ValidationError
-from .utils import is_valid_ip, validate_ports
+from .utils import (
+    is_valid_ip, 
+    validate_ports,
+    update_zabbix_global_status
+)
 from django.shortcuts import render
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404
-from django.contrib.admin.views.decorators import staff_member_required
+from django.contrib.auth.decorators import login_required, user_passes_test
 from django.utils import timezone
 from django.views.decorators.csrf import csrf_exempt
 from .models import Agent, Task, TaskItem, AutoTask
@@ -50,6 +53,11 @@ def agent_status(request):
     agent.last_contact_at = timezone.now()
     agent.last_seen_ip = request.META.get("REMOTE_ADDR")
     agent.save(update_fields=["last_contact_at", "last_seen_ip"])
+
+    # =========================================================
+    # 4.5. Zabbix inform
+    # =========================================================
+    update_zabbix_global_status()
 
     # =========================================================
     # 5. Response (keep simple for now)
@@ -215,7 +223,8 @@ def task_report(request):
     # =========================================================
     task.last_result_received_at = timezone.now()
     task.save(update_fields=["last_result_received_at"])
-
+    #update zabbix
+    update_zabbix_global_status()
     return JsonResponse({
         "status": "ok",
         "updated_items": updated
@@ -268,7 +277,8 @@ def agent_inform(request):
         "updated_items": updated
     })
 
-@staff_member_required
+@login_required # Использует LOGIN_URL из settings.py
+@user_passes_test(lambda u: u.is_staff, login_url='/accounts/login/') 
 def create_agent(request):
     if request.method != "POST":
         return JsonResponse({"error": "POST only"}, status=405)
@@ -327,7 +337,8 @@ def create_agent(request):
     })
 
 
-@staff_member_required
+@login_required # Использует LOGIN_URL из settings.py
+@user_passes_test(lambda u: u.is_staff, login_url='/accounts/login/') 
 def create_task(request):
     if request.method != "POST":
         return JsonResponse({"error": "POST only"}, status=405)
@@ -382,25 +393,49 @@ def create_task(request):
     except Exception as e:
         return JsonResponse({"error": str(e)}, status=500)
 
-@staff_member_required
+@login_required # Использует LOGIN_URL из settings.py
+@user_passes_test(lambda u: u.is_staff, login_url='/accounts/login/') 
 def list_agents(request):
     agents = Agent.objects.all()
 
-    data = [
-        {
+    data = []
+    for a in agents:
+        has_alert = TaskItem.objects.filter(agent=a, status__iexact="alert").exists()
+        
+        data.append({
             "id": str(a.id),
             "name": a.name,
             "last_seen": a.last_seen,
             "last_contact_at": a.last_contact_at,
             "is_active": a.is_active,
             "secret_key": a.secret_key,
-        }
-        for a in agents
-    ]
+            "status": "Alert" if has_alert else None,
+        })
 
     return JsonResponse({"agents": data})
 
-@staff_member_required
+@login_required # Использует LOGIN_URL из settings.py
+@user_passes_test(lambda u: u.is_staff, login_url='/accounts/login/') 
+def list_auto_tasks(request):
+    auto_tasks = AutoTask.objects.all().order_by('-created_at')
+
+    data = [
+        {
+            "id": a.id,
+            "name": a.name,
+            "targets_raw": a.targets_raw,
+            "ports": a.ports,
+            "schedule": a.schedule,
+            "is_active": a.is_active,
+            "created_at": a.created_at.isoformat() if a.created_at else None,
+        }
+        for a in auto_tasks
+    ]
+
+    return JsonResponse({"auto_tasks": data})
+
+@login_required # Использует LOGIN_URL из settings.py
+@user_passes_test(lambda u: u.is_staff, login_url='/accounts/login/') 
 def agent_detail(request, agent_id):
     agent = get_object_or_404(Agent, id=agent_id)
 
@@ -438,11 +473,18 @@ def agent_detail(request, agent_id):
         }
     })
 
-@staff_member_required
+@login_required # Использует LOGIN_URL из settings.py
+@user_passes_test(lambda u: u.is_staff, login_url='/accounts/login/') 
 def admin_ui_agents(request):
     return render(request, "admin_ui/agents_list.html")
 
-@staff_member_required
+@login_required # Использует LOGIN_URL из settings.py
+@user_passes_test(lambda u: u.is_staff, login_url='/accounts/login/') 
+def admin_ui_auto_tasks(request):
+    return render(request, "admin_ui/auto_tasks_list.html")
+
+@login_required # Использует LOGIN_URL из settings.py
+@user_passes_test(lambda u: u.is_staff, login_url='/accounts/login/') 
 def agent_detail_page(request, agent_id):
     agent = get_object_or_404(Agent, id=agent_id)
 
@@ -477,7 +519,8 @@ def agent_detail_page(request, agent_id):
     })
 
 
-@staff_member_required  # This ensures only staff members can access this view
+@login_required # Использует LOGIN_URL из settings.py
+@user_passes_test(lambda u: u.is_staff, login_url='/accounts/login/')
 @csrf_exempt  # If you are not using CSRF tokens for this part, you can remove this if needed
 def update_allowed_ports(request, task_item_id):
     if request.method != "POST":
@@ -510,6 +553,8 @@ def update_allowed_ports(request, task_item_id):
             task_item.status = "alert"
 
         task_item.save()
+        #update zabbix
+        update_zabbix_global_status()
 
         return JsonResponse({"status": "success", "message": "Allowed ports and status updated successfully"})
 
@@ -517,7 +562,8 @@ def update_allowed_ports(request, task_item_id):
         return JsonResponse({"error": str(e)}, status=500)
 
 
-@staff_member_required
+@login_required # Использует LOGIN_URL из settings.py
+@user_passes_test(lambda u: u.is_staff, login_url='/accounts/login/') 
 def delete_agent(request):
     if request.method != "POST":
         return JsonResponse({"error": "POST only"}, status=405)
@@ -547,7 +593,46 @@ def delete_agent(request):
         "name": agent_name
     })
 
-@staff_member_required
+@login_required # Использует LOGIN_URL из settings.py
+@user_passes_test(lambda u: u.is_staff, login_url='/accounts/login/') 
+def delete_auto_task(request):
+    if request.method not in ["DELETE", "POST"]:
+        return JsonResponse({"error": "Method not allowed"}, status=405)
+
+    try:
+        data = json.loads(request.body)
+        task_id = data.get("task_id")
+        delete_all_spawned = data.get("delete_generated", False)
+
+        if not task_id:
+            return JsonResponse({"error": "Missing task_id in request body"}, status=400)
+
+        auto_task = AutoTask.objects.get(id=task_id)
+        
+        spawned_deleted_count = 0
+        if delete_all_spawned:
+            search_name = f"[AUTO] {auto_task.name}"
+            tasks_to_delete = Task.objects.filter(name=search_name)
+            spawned_deleted_count = tasks_to_delete.count()
+            tasks_to_delete.delete()
+
+        auto_task.delete()
+        
+        return JsonResponse({
+            "status": "deleted",
+            "task_id": task_id,
+            "spawned_tasks_deleted": spawned_deleted_count
+        })
+        
+    except AutoTask.DoesNotExist:
+        return JsonResponse({"error": "AutoTask not found"}, status=404)
+    except json.JSONDecodeError:
+        return JsonResponse({"error": "Invalid JSON"}, status=400)
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=500)
+
+@login_required # Использует LOGIN_URL из settings.py
+@user_passes_test(lambda u: u.is_staff, login_url='/accounts/login/') 
 def manage_auto_tasks(request):
     """
     Эндпоинт для создания и получения списка автозадач.

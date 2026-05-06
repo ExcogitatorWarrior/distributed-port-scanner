@@ -11,14 +11,18 @@ from communications import (
 from config import (
     BASE_URL,
     SECRET,
-    CONTACT_INTERVAL_DEFAULT
+    CONTACT_INTERVAL_DEFAULT,
+    TIMER,
+    START_TIME,
+    END_TIME
 )
 
 from utils import (
     parse_ports,
     sort_scan_results,
     generate_scan_list,
-    compute_next_parse_date
+    compute_next_parse_date,
+    is_working_hour
 )
 from scanner import scan_port
 import threading
@@ -151,6 +155,9 @@ def process_and_update_tasks():
             if threads:
                 threads[-1].join()
 
+            if TIMER:
+                while not is_working_hour(START_TIME, END_TIME):
+                    time.sleep(300)
 
             # Check if we need to pull new tasks
             if time.time() >= NEXT_CALL_TIME:

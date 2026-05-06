@@ -6,3 +6,4 @@ slippers>=0.6.3
 PyYAML>=6.0.3
 requests>=2.33.1
 cryptography>=46.0.7
+zabbix-utils>=2.0.4
